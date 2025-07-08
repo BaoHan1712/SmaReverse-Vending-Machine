@@ -27,7 +27,7 @@
 
 1. **Clone dự án:**
    ```bash
-   git clone <link-repo>
+   git clone <https://github.com/BaoHan1712/SmaReverse-Vending-Machine.git>
    ```
 
 2. **Cài đặt thư viện cần thiết:**
