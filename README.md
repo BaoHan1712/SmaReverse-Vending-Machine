@@ -40,11 +40,12 @@
 
    ![Demo logo](image/logo.png)
 
+   ![Demo giao diện splash](image/giphy.gif)
+
 4. **Chạy ứng dụng:**
    ```bash
    python UI.py
    ```
-   ![Demo giao diện splash](image/giphy.gif)
 
 ## Hướng dẫn sử dụng
 
