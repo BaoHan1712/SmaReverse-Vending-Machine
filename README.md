@@ -44,7 +44,7 @@
    ```bash
    python UI.py
    ```
-   ![Demo giao diện splash](image\giphy.gif)
+   ![Demo giao diện splash](image/giphy.gif)
 
 ## Hướng dẫn sử dụng
 
