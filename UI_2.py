@@ -318,12 +318,12 @@ class RecyclingApp(ctk.CTk):
 # Hàm splash 
 def create_splash_screen(master):
     """
-    Splash screen dùng GIF động thay logo PNG, có thanh progress tăng dần.
+    Hàm này tạo và hiển thị cửa sổ màn hình chờ với ảnh GIF động.
     """
     splash = ctk.CTkToplevel(master)
 
     # --- Cấu hình cửa sổ ---
-    width, height = 600, 500
+    width, height = 650, 500
     screen_width = splash.winfo_screenwidth()
     screen_height = splash.winfo_screenheight()
     x = (screen_width / 2) - (width / 2)
@@ -331,58 +331,81 @@ def create_splash_screen(master):
 
     splash.geometry(f'{width}x{height}+{int(x)}+{int(y)}')
     splash.overrideredirect(True)
-    splash.configure(fg_color="#FFFFFF")
+    splash.configure(fg_color="#F9F9F9")  # Nền sáng
 
-    # --- Load GIF ---
-    gif_path = r"image\giphy.gif"   # Đường dẫn GIF động của bạn
-    gif = Image.open(gif_path)
-
+    # --- Load và xử lý GIF ---
     frames = []
-    try:
-        while True:
-            frames.append(ImageTk.PhotoImage(gif.copy().convert("RGBA").resize((400, 400))))
-            gif.seek(len(frames))  # Move to next frame
-    except EOFError:
-        pass
+    gif_path = r"image\giphy.gif"   # Đường dẫn GIF
 
+    if os.path.exists(gif_path):
+        gif = Image.open(gif_path)
+        try:
+            while True:
+                frame = gif.copy().convert("RGBA").resize((415, 415))
+                frames.append(ImageTk.PhotoImage(frame))  
+                gif.seek(len(frames)) 
+        except EOFError:
+            pass
+    else:
+        print(f"Warning: '{gif_path}' not found. Hiển thị placeholder.")
+        frames = None
+
+    # --- Label ảnh ---
     image_label = ctk.CTkLabel(splash, text="")
-    image_label.pack(pady=(40, 10))
+    image_label.pack(pady=(50, 20))
 
     # --- Hàm chạy GIF ---
     def animate(frame_index=0):
-        frame = frames[frame_index]
-        image_label.configure(image=frame)
-        next_index = (frame_index + 1) % len(frames)
-        splash.after(45, animate, next_index)  # Speed: chỉnh nếu muốn nhanh hoặc chậm
+        if frames:
+            frame = frames[frame_index]
+            image_label.configure(image=frame)
+            next_index = (frame_index + 1) % len(frames)
+            splash.after(36, animate, next_index)
 
-    animate()
+    if frames:
+        animate()
+    else:
+        # Nếu không có GIF, hiện placeholder text
+        image_label.configure(text="</>", font=ctk.CTkFont(size=100, family="Courier New", weight="bold"), text_color="#00FF7F")
 
-    # --- Loading label ---
+    # --- Dòng chữ đang tải ---
     loading_label = ctk.CTkLabel(
         splash,
-        text="Loading...",
-        font=ctk.CTkFont(size=18, weight="bold"),
-        text_color="#228B22"
+        text="Đang khởi tạo...",
+        font=ctk.CTkFont(family="Arial", size=16, weight="bold"),
+        text_color="#1B5E20"
     )
-    loading_label.pack(pady=(10, 20))
+    loading_label.pack(pady=(10, 5))
 
-    # --- Progress bar ---
+    # --- Thanh tiến trình ---
     progress_bar = ctk.CTkProgressBar(
         splash,
         orientation='horizontal',
         mode='determinate',
-        progress_color="#32CD32"
+        progress_color="#4CAF50",
+        fg_color="#E8F5E9"
     )
-    progress_bar.pack(pady=10, padx=40, fill="x")
+    progress_bar.pack(pady=10, padx=50, fill="x")
     progress_bar.set(0)
 
-    # --- Hàm tăng progress ---
+    # --- Nhãn hiển thị phần trăm ---
+    percentage_label = ctk.CTkLabel(
+        splash,
+        text="0%",
+        font=ctk.CTkFont(family="Arial", size=12, weight="bold"),
+        text_color="#388E3C"
+    )
+    percentage_label.pack()
+
+    # --- Hàm cập nhật tiến trình ---
     def update_progress(value=0):
         if value <= 1.0:
             progress_bar.set(value)
-            splash.after(50, update_progress, value + 0.02)
+            percentage_label.configure(text=f"{int(value * 100)}%")
+            splash.after(28, update_progress, value + 0.01) 
         else:
-            progress_bar.set(1.0)
+            progress_bar.set(1)
+            percentage_label.configure(text="100%")
 
     update_progress()
 

@@ -341,7 +341,7 @@ def create_splash_screen(master):
         gif = Image.open(gif_path)
         try:
             while True:
-                frame = gif.copy().convert("RGBA").resize((450, 450))
+                frame = gif.copy().convert("RGBA").resize((415, 415))
                 frames.append(ImageTk.PhotoImage(frame))  
                 gif.seek(len(frames)) 
         except EOFError:
