@@ -20,7 +20,7 @@
 
 ## Yêu cầu hệ thống
 
-- Python >= 3.8
+- Python >= 3.8, Đang dùng python 3.9
 - Thư viện: customtkinter, opencv-python, pillow
 
 ## Cài đặt

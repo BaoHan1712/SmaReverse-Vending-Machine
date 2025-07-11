@@ -316,6 +316,10 @@ class RecyclingApp(ctk.CTk):
         print(f"Đã đổi vật phẩm! Trừ {points_to_deduct} điểm. Điểm còn lại: {self.total_points}")
 
 # Hàm splash 
+import os
+from PIL import Image
+import customtkinter as ctk
+
 def create_splash_screen(master):
     """
     Hàm này tạo và hiển thị cửa sổ màn hình chờ với ảnh GIF động.
@@ -341,9 +345,11 @@ def create_splash_screen(master):
         gif = Image.open(gif_path)
         try:
             while True:
-                frame = gif.copy().convert("RGBA").resize((415, 415))
-                frames.append(ImageTk.PhotoImage(frame))  
-                gif.seek(len(frames)) 
+                frame = gif.copy().convert("RGBA").resize((315, 315))
+                # Sử dụng CTkImage
+                ctk_image = ctk.CTkImage(light_image=frame, dark_image=frame, size=(315, 315))
+                frames.append(ctk_image)
+                gif.seek(len(frames))
         except EOFError:
             pass
     else:
@@ -360,7 +366,7 @@ def create_splash_screen(master):
             frame = frames[frame_index]
             image_label.configure(image=frame)
             next_index = (frame_index + 1) % len(frames)
-            splash.after(36, animate, next_index)
+            splash.after(25, animate, next_index)
 
     if frames:
         animate()
@@ -402,7 +408,7 @@ def create_splash_screen(master):
         if value <= 1.0:
             progress_bar.set(value)
             percentage_label.configure(text=f"{int(value * 100)}%")
-            splash.after(28, update_progress, value + 0.01) 
+            splash.after(28, update_progress, value + 0.01)
         else:
             progress_bar.set(1)
             percentage_label.configure(text="100%")
@@ -410,6 +416,7 @@ def create_splash_screen(master):
     update_progress()
 
     return splash
+
 
 if __name__ == "__main__":
     app = RecyclingApp()

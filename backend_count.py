@@ -46,7 +46,8 @@ class YOLOProcessor(threading.Thread):
 
             frame = cv2.resize(frame, (640, 480))
             results = model.track(source=frame, imgsz=640, conf=0.3, verbose=False, persist=True, tracker=r'tracking/bytetrack.yaml')[0]
-
+             # Draw the counting line
+            cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 255, 255), 3)
             if results.boxes and results.boxes.is_track:
                 boxes = results.boxes.xywh.cpu().numpy()
                 track_ids = results.boxes.id.int().cpu().tolist()
@@ -54,19 +55,19 @@ class YOLOProcessor(threading.Thread):
                 # Plot tracked boxes onto the frame
                 frame = results.plot(boxes=True, color_mode='instance')
                 
-                # Draw the counting line
-                cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 255, 255), 3)
+               
+                
 
                 for box, track_id in zip(boxes, track_ids):
                     x, y, w, h = box
+                    center_x = int(x)
                     center_y = int(y)
-
+                    cv2.circle(frame, (center_x, center_y), 3, (0, 255, 0), -1)  
                     # Check if the object's center crosses the line
                     if line[1] - 10 < center_y < line[1] + 10:
                         if track_id not in count_set:
                             count_set.add(track_id)
                             total_count += 1
-                            # Highlight the line when an object crosses
                             cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 0, 255), 3)
             
             # Put the processed frame and count into the queue
