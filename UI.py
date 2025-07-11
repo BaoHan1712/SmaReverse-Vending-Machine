@@ -64,16 +64,14 @@ class RecyclingApp(ctk.CTk):
         self.configure(bg=SECONDARY_GREEN)
 
         # --- Data Attributes ---
-        self.bottles_counted = 0
-        self.cans_counted = 0
-        self.total_points = 0
-        self.current_yolo_total = 0
-        self.last_confirmed_count = 0
+        self.bottles_counted, self.cans_counted, self.total_points = 0, 0, 0
+        self.current_yolo_bottle_count, self.current_yolo_can_count = 0, 0
+        self.last_confirmed_bottle_count, self.last_confirmed_can_count = 0, 0
 
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
-        video_source = 0
+        video_source = 1
         self.yolo_thread = YOLOProcessor(
             video_path=video_source,
             model_path=r"model/best.pt",
@@ -145,38 +143,34 @@ class RecyclingApp(ctk.CTk):
         self.after(500, self.animate_title, colors, idx+1)
 
     def confirm_and_update_stats(self):
-        """
-        Xác nhận số lượng vật phẩm mới phát hiện và cập nhật số liệu lên dashboard.
-        """
-        newly_detected = self.current_yolo_total - self.last_confirmed_count
-        if newly_detected > 0:
-            print(f"Xác nhận {newly_detected} vật phẩm mới.")
-            # Assuming all detected items are a mix for now
-            self.bottles_counted += newly_detected
-            self.total_points += newly_detected * 5
-            self.last_confirmed_count = self.current_yolo_total
+        newly_detected_bottles = self.current_yolo_bottle_count - self.last_confirmed_bottle_count
+        newly_detected_cans = self.current_yolo_can_count - self.last_confirmed_can_count
 
-            self.bottles_and_cans_value_label.configure(text=f"{self.bottles_counted} , {self.cans_counted}")
-            self.points_value_label.configure(text=str(self.total_points))
+        if newly_detected_bottles > 0 or newly_detected_cans > 0:
+            print(f"Xác nhận {newly_detected_bottles} chai và {newly_detected_cans} lon mới.")
+            self.bottles_counted += newly_detected_bottles
+            self.cans_counted += newly_detected_cans
+            self.total_points += (newly_detected_bottles + newly_detected_cans) * 5
+            
+            self.last_confirmed_bottle_count = self.current_yolo_bottle_count
+            self.last_confirmed_can_count = self.current_yolo_can_count
+            
+            self.update_dashboard_display()
         else:
-            print("Không có vật phẩm mới để xác nhận.")
-            CustomDialog(self, title="Thông báo", message="Không có vật phẩm mới nào được phát hiện kể từ lần xác nhận cuối.")
+            CustomDialog(self, title="Thông báo", message="Không có vật phẩm mới nào được phát hiện.")
 
     def update_camera_feed(self):
         """
         Lấy frame mới nhất từ queue và hiển thị lên giao diện.
         """
         try:
-            frame, yolo_total_count = self.yolo_queue.get_nowait()
-            self.current_yolo_total = yolo_total_count
-
-            # Add the live count to the frame
-            cv2.putText(frame, f'Tong so luong: {yolo_total_count}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            frame, bottle_count, can_count = self.yolo_queue.get_nowait()
+            self.current_yolo_bottle_count = bottle_count
+            self.current_yolo_can_count = can_count
 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             pil_image = Image.fromarray(frame_rgb)
             ctk_image = ctk.CTkImage(light_image=pil_image, size=(640, 480))
-            
             self.camera_label.configure(image=ctk_image, text="")
             self.camera_label.image = ctk_image
         except queue.Empty:
@@ -246,16 +240,12 @@ class RecyclingApp(ctk.CTk):
         CustomDialog(self, title="Xác nhận", message=message, is_confirm=True, command=self.reset_stats)
 
     def reset_stats(self):
-        """
-        Đặt lại toàn bộ số liệu thống kê về 0.
-        """
+        """Đặt lại toàn bộ số liệu thống kê về 0."""
         print("Resetting statistics...")
-        self.bottles_counted = 0
-        self.cans_counted = 0
-        self.total_points = 0
-        self.last_confirmed_count = self.current_yolo_total
-        self.bottles_and_cans_value_label.configure(text=f"{self.bottles_counted} , {self.cans_counted}")
-        self.points_value_label.configure(text=str(self.total_points))
+        self.bottles_counted, self.cans_counted, self.total_points = 0, 0, 0
+        self.last_confirmed_bottle_count = self.current_yolo_bottle_count
+        self.last_confirmed_can_count = self.current_yolo_can_count
+        self.update_dashboard_display()
     
     def create_stat_box(self, parent, col, title, value, subtitle, icon):
         """
@@ -316,11 +306,14 @@ class RecyclingApp(ctk.CTk):
         self.points_value_label.configure(text=str(self.total_points))
         print(f"Đã đổi vật phẩm! Trừ {points_to_deduct} điểm. Điểm còn lại: {self.total_points}")
 
-# Hàm splash 
-import os
-from PIL import Image
-import customtkinter as ctk
+    def update_dashboard_display(self):
+        """
+        Cập nhật hiển thị dashboard với số liệu mới nhất.
+        """
+        self.bottles_and_cans_value_label.configure(text=f"{self.bottles_counted} , {self.cans_counted}")
+        self.points_value_label.configure(text=str(self.total_points))
 
+# Hàm splash 
 def create_splash_screen(master):
     """
     Hàm này tạo và hiển thị cửa sổ màn hình chờ với ảnh GIF động.
@@ -340,7 +333,7 @@ def create_splash_screen(master):
 
     # --- Load và xử lý GIF ---
     frames = []
-    gif_path = r"image\giphy.gif"   # Đường dẫn GIF
+    gif_path = r"image\giphy.gif"  
 
     if os.path.exists(gif_path):
         gif = Image.open(gif_path)
