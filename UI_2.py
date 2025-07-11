@@ -73,10 +73,10 @@ class RecyclingApp(ctk.CTk):
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
-        video_source = r"data/video2.avi" 
+        video_source = 1
         self.yolo_thread = YOLOProcessor(
             video_path=video_source,
-            model_path="model/yolo11n.pt",
+            model_path=r"model/best.pt",
             output_queue=self.yolo_queue
         )
         self.yolo_thread.start()
@@ -173,7 +173,8 @@ class RecyclingApp(ctk.CTk):
             # Add the live count to the frame
             cv2.putText(frame, f'Tong so luong: {yolo_total_count}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-            pil_image = Image.fromarray(frame)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(frame_rgb)
             ctk_image = ctk.CTkImage(light_image=pil_image, size=(640, 480))
             
             self.camera_label.configure(image=ctk_image, text="")
