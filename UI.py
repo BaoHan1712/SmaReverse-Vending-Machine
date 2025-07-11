@@ -73,10 +73,10 @@ class RecyclingApp(ctk.CTk):
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
-        video_source = r"data/video2.avi" 
+        video_source = r"data\plastic_bottle_video(online-video-cutter.com).mp4" 
         self.yolo_thread = YOLOProcessor(
             video_path=video_source,
-            model_path="model/yolo11n.pt",
+            model_path=r"model\best.pt",
             output_queue=self.yolo_queue
         )
         self.yolo_thread.start()

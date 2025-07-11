@@ -45,7 +45,7 @@ class YOLOProcessor(threading.Thread):
                 continue
 
             frame = cv2.resize(frame, (640, 480))
-            results = model.track(source=frame, imgsz=640, conf=0.3, verbose=False, persist=True, tracker=r'tracking/bytetrack.yaml')[0]
+            results = model.track(source=frame, imgsz=640, conf=0.7, verbose=False, persist=True, tracker=r'tracking/bytetrack.yaml')[0]
              # Draw the counting line
             cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 255, 255), 3)
             if results.boxes and results.boxes.is_track:
