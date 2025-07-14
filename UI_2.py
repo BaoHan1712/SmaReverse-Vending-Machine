@@ -201,25 +201,6 @@ class RecyclingApp(ctk.CTk):
         header_frame.grid_columnconfigure(0, weight=1)
         dashboard_label = ctk.CTkLabel(header_frame, text="Dashboard", font=ctk.CTkFont(size=24, weight="bold"), text_color=DARK_GREEN)
         dashboard_label.grid(row=0, column=0, sticky="w", pady=20)
-
-        # --- NÚT EXPORT MỚI ---
-        try:
-
-            export_icon_path = Image.open(r"image\export.png")
-            export_icon = ctk.CTkImage(light_image=export_icon_path, size=(80, 45))
-            export_button = ctk.CTkButton(
-                header_frame, image=export_icon, text="", width=20,
-                fg_color="transparent", hover_color=SECONDARY_GREEN,
-                command=self.prompt_export
-            )
-        except FileNotFoundError:
-            print("Warning: 'image/export_icon.png' not found. Using text button.")
-            export_button = ctk.CTkButton(
-                header_frame, text="Xuất Phiếu", font=ctk.CTkFont(weight="bold"),
-                fg_color="transparent", border_color=PRIMARY_GREEN, text_color=PRIMARY_GREEN,
-                border_width=2, hover_color=SECONDARY_GREEN, command=self.prompt_export
-            )
-        export_button.grid(row=0, column=1, sticky="e")
         
         stats_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
         stats_frame.grid(row=1, column=0, sticky="ew", pady=10)
@@ -250,22 +231,6 @@ class RecyclingApp(ctk.CTk):
             fg_color="#F9A825", hover_color="#E89B21", text_color="white", corner_radius=10, command=self.prompt_reset_stats
         )
         reset_button.grid(row=4, column=0, padx=10, pady=(20, 10), sticky="ew")
-
-    def prompt_export(self):
-        """Mở hộp thoại để người dùng nhập tên và xuất phiếu."""
-        dialog = ctk.CTkInputDialog(
-            text="Vui lòng nhập họ và tên để xuất phiếu:",
-            title="Xuất Phiếu Tích Điểm"
-        )
-        user_name = dialog.get_input()
-
-        if user_name:
-            print(f"Đã xuất phiếu thành công cho: {user_name}")
-            # Hiển thị thông báo thành công
-            success_message = (f"Đã xuất phiếu thành công cho {user_name}")
-            CustomDialog(self, title="Thành công", message=success_message)
-        else:
-            print("Hủy xuất phiếu.")
 
     def prompt_reset_stats(self):
         """
@@ -395,7 +360,7 @@ def create_splash_screen(master):
             frame = frames[frame_index]
             image_label.configure(image=frame)
             next_index = (frame_index + 1) % len(frames)
-            splash.after(29, animate, next_index)
+            splash.after(25, animate, next_index)
 
     if frames:
         animate()
