@@ -71,7 +71,7 @@ class RecyclingApp(ctk.CTk):
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
-        video_source = 1
+        video_source = 0
         self.yolo_thread = YOLOProcessor(
             video_path=video_source,
             model_path=r"model/best.pt",
@@ -150,7 +150,7 @@ class RecyclingApp(ctk.CTk):
             print(f"Xác nhận {newly_detected_bottles} chai và {newly_detected_cans} lon mới.")
             self.bottles_counted += newly_detected_bottles
             self.cans_counted += newly_detected_cans
-            self.total_points += (newly_detected_bottles + newly_detected_cans) * 5
+            self.total_points += ((newly_detected_bottles * 1) +( newly_detected_cans * 0.5)) 
             
             self.last_confirmed_bottle_count = self.current_yolo_bottle_count
             self.last_confirmed_can_count = self.current_yolo_can_count
