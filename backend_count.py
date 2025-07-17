@@ -84,3 +84,73 @@ class YOLOProcessor(threading.Thread):
     def stop(self):
         """Signals the thread to stop."""
         self.running = False
+
+
+# ===============================================================
+# CLASS IN PHIẾU
+# ===============================================================
+
+try:
+    import win32print
+    IS_WINDOWS = True
+except ImportError:
+    IS_WINDOWS = False
+    print("Cảnh báo: Thư viện 'pywin32' không được tìm thấy. Chức năng in sẽ không hoạt động.")
+    print("Để cài đặt, chạy lệnh: pip install pywin32")
+
+
+class ReceiptPrinter:
+    """
+    Một class chuyên dụng để xử lý việc tạo và in phiếu tích điểm.
+    """
+    def __init__(self):
+        self.is_ready = IS_WINDOWS
+        if not self.is_ready:
+            print("Cảnh báo: Chức năng in không có sẵn (chỉ hỗ trợ Windows và yêu cầu pywin32).")
+
+    def print_receipt(self, user_name, bottles, cans, points):
+        if not self.is_ready:
+            return False, "Chức năng in không có sẵn trên hệ điều hành này hoặc do thiếu thư viện."
+
+        try:
+            now = datetime.datetime.now()
+            date_str = now.strftime("%d/%m/%Y")
+            time_str = now.strftime("%H:%M:%S")
+
+            receipt_content = (
+                "   PHIEU TICH DIEM TAI CHE\n"
+                "--------------------------------\n"
+                f"Khach hang: {user_name}\n"
+                f"Ngay: {date_str}\n"
+                f"Gio: {time_str}\n"
+                "--------------------------------\n"
+                "So luong vat pham:\n"
+                f"- Chai nhua:      {bottles}\n"
+                f"- Lon kim loai:   {cans}\n"
+                "--------------------------------\n"
+                # f"TONG DIEM TICH LUY: {points}\n\n"
+                "Cam on ban da chung tay bao ve\n"
+                "         moi truong!\n\n\n."
+            )
+
+            printer_name = win32print.GetDefaultPrinter()
+            h_printer = win32print.OpenPrinter(printer_name)
+            try:
+                h_job = win32print.StartDocPrinter(h_printer, 1, ("Phieu Tich Diem", None, "RAW"))
+                try:
+                    win32print.StartPagePrinter(h_printer)
+                    win32print.WritePrinter(h_printer, receipt_content.encode('utf-8'))
+                    win32print.EndPagePrinter(h_printer)
+                finally:
+                    win32print.EndDocPrinter(h_printer)
+            finally:
+                win32print.ClosePrinter(h_printer)
+
+            success_message = f"Đã gửi phiếu của '{user_name}' đến máy in thành công."
+            print(success_message)
+            return True, success_message
+
+        except Exception as e:
+            error_message = f"Không thể in phiếu. Đã xảy ra lỗi:\n{e}\n\nVui lòng kiểm tra lại kết nối máy in."
+            print(error_message)
+            return False, error_message

@@ -68,6 +68,9 @@ class RecyclingApp(ctk.CTk):
         self.current_yolo_bottle_count, self.current_yolo_can_count = 0, 0
         self.last_confirmed_bottle_count, self.last_confirmed_can_count = 0, 0
 
+        # --- THÊM MỚI: Khởi tạo đối tượng in ấn ---
+        self.printer = ReceiptPrinter()
+
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
@@ -252,20 +255,29 @@ class RecyclingApp(ctk.CTk):
         reset_button.grid(row=4, column=0, padx=10, pady=(5, 10), sticky="ew")
 
     def prompt_export(self):
-        """Mở hộp thoại để người dùng nhập tên và xuất phiếu."""
-        dialog = ctk.CTkInputDialog(
-            text="Vui lòng nhập họ và tên để xuất phiếu:",
-            title="Xuất Phiếu Tích Điểm"
-        )
+        """Mở hộp thoại để người dùng nhập tên và gọi hàm xuất phiếu."""
+        dialog = ctk.CTkInputDialog(text="Vui lòng nhập họ và tên để xuất phiếu:", title="Xuất Phiếu Tích Điểm")
         user_name = dialog.get_input()
-
         if user_name:
-            print(f"Đã xuất phiếu thành công cho: {user_name}")
-            # Hiển thị thông báo thành công
-            success_message = (f"Đã xuất phiếu thành công cho {user_name}")
-            CustomDialog(self, title="Thành công", message=success_message)
+            self.export_receipt(user_name)
         else:
             print("Hủy xuất phiếu.")
+
+    # HÀM ĐƯỢC CẬP NHẬT: Giờ đây nó sử dụng class ReceiptPrinter
+    def export_receipt(self, user_name):
+        """
+        Xử lý logic gọi class in và hiển thị hộp thoại kết quả.
+        """
+        success, message = self.printer.print_receipt(
+            user_name=user_name,
+            bottles=self.bottles_counted,
+            cans=self.cans_counted,
+            points=self.total_points
+        )
+        if success:
+            CustomDialog(self, title="Thành Công", message=message)
+        else:
+            CustomDialog(self, title="Lỗi In Ấn", message=message)
 
     def prompt_reset_stats(self):
         """
