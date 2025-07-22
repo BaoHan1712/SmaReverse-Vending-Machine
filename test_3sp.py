@@ -1,5 +1,6 @@
 from get_library import *
 from backend_count import *
+# from toUart import *
 
 
 # Màu sắc và bo góc chủ đạo
@@ -70,6 +71,9 @@ class RecyclingApp(ctk.CTk):
 
         # --- THÊM MỚI: Khởi tạo đối tượng in ấn ---
         self.printer = ReceiptPrinter()
+
+        # #--- Khởi tạo truyền gói tin---
+        # self.send_uart = ESP32_UART(port='COM4', baudrate=9600)
 
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)

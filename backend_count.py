@@ -1,4 +1,5 @@
 from get_library import *
+from toUart import *
 
 class YOLOProcessor(threading.Thread):
     """
@@ -10,6 +11,9 @@ class YOLOProcessor(threading.Thread):
         self.model_path = model_path
         self.output_queue = output_queue
         self.running = True
+
+        #--- Khởi tạo truyền gói tin---
+        self.send_uart = ESP32_UART(port='COM4', baudrate=9600)
 
     def run(self):
         """Main loop for video processing."""
@@ -49,7 +53,7 @@ class YOLOProcessor(threading.Thread):
             if results.boxes and results.boxes.is_track:
                 boxes = results.boxes.xywh.cpu().numpy()
                 track_ids = results.boxes.id.int().cpu().tolist()
-                cls_ids = results.boxes.cls.int().cpu().tolist()  # Lấy danh sách nhãn (class)
+                cls_ids = results.boxes.cls.int().cpu().tolist()  
 
                 frame = results.plot(boxes=True, color_mode='instance')
 
@@ -65,8 +69,10 @@ class YOLOProcessor(threading.Thread):
 
                             if cls_id == 0:
                                 total_label_0 += 1
+                                self.send_uart.send_packet(1)  
                             elif cls_id == 1:
                                 total_label_1 += 1
+                                self.send_uart.send_packet(2)
                             
                             cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 0, 255), 3)
                             
