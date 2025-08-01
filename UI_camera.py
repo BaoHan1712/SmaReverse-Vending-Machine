@@ -1,5 +1,6 @@
 from get_library import *
 from backend_count import *
+# from toUart import *
 
 
 # Màu sắc và bo góc chủ đạo
@@ -68,10 +69,16 @@ class RecyclingApp(ctk.CTk):
         self.current_yolo_bottle_count, self.current_yolo_can_count = 0, 0
         self.last_confirmed_bottle_count, self.last_confirmed_can_count = 0, 0
 
+        # --- THÊM MỚI: Khởi tạo đối tượng in ấn ---
+        self.printer = ReceiptPrinter()
+
+        # #--- Khởi tạo truyền gói tin---
+        # self.send_uart = ESP32_UART(port='COM4', baudrate=9600)
+
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
         # Change to 0 for webcam, or keep the path for a video file
-        video_source = 1
+        video_source = 0
         self.yolo_thread = YOLOProcessor(
             video_path=video_source,
             model_path=r"model/best.pt",
@@ -150,7 +157,7 @@ class RecyclingApp(ctk.CTk):
             print(f"Xác nhận {newly_detected_bottles} chai và {newly_detected_cans} lon mới.")
             self.bottles_counted += newly_detected_bottles
             self.cans_counted += newly_detected_cans
-            self.total_points += (newly_detected_bottles + newly_detected_cans) * 5
+            self.total_points += ((newly_detected_bottles * 1.5) +( newly_detected_cans * 0.5)) 
             
             self.last_confirmed_bottle_count = self.current_yolo_bottle_count
             self.last_confirmed_can_count = self.current_yolo_can_count
@@ -201,6 +208,25 @@ class RecyclingApp(ctk.CTk):
         header_frame.grid_columnconfigure(0, weight=1)
         dashboard_label = ctk.CTkLabel(header_frame, text="Dashboard", font=ctk.CTkFont(size=24, weight="bold"), text_color=DARK_GREEN)
         dashboard_label.grid(row=0, column=0, sticky="w", pady=20)
+
+        # --- NÚT EXPORT MỚI ---
+        try:
+
+            export_icon_path = Image.open(r"image\export.png")
+            export_icon = ctk.CTkImage(light_image=export_icon_path, size=(80, 45))
+            export_button = ctk.CTkButton(
+                header_frame, image=export_icon, text="", width=20,
+                fg_color="transparent", hover_color=SECONDARY_GREEN,
+                command=self.prompt_export
+            )
+        except FileNotFoundError:
+            print("Warning: 'image/export_icon.png' not found. Using text button.")
+            export_button = ctk.CTkButton(
+                header_frame, text="Xuất Phiếu", font=ctk.CTkFont(weight="bold"),
+                fg_color="transparent", border_color=PRIMARY_GREEN, text_color=PRIMARY_GREEN,
+                border_width=2, hover_color=SECONDARY_GREEN, command=self.prompt_export
+            )
+        export_button.grid(row=0, column=1, sticky="e")
         
         stats_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
         stats_frame.grid(row=1, column=0, sticky="ew", pady=10)
@@ -212,25 +238,50 @@ class RecyclingApp(ctk.CTk):
         rewards_header_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
         rewards_header_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(20, 10))
         rewards_header_frame.grid_columnconfigure(0, weight=1)
-        rewards_label = ctk.CTkLabel(rewards_header_frame, text="Phần thưởng có sẵn", font=ctk.CTkFont(size=18, weight="bold"), text_color=DARK_GREEN)
+        rewards_label = ctk.CTkLabel(rewards_header_frame, text="Phần thưởng có sẵn", font=ctk.CTkFont(size=24, weight="bold"), text_color=DARK_GREEN)
         rewards_label.grid(row=0, column=0, sticky="w")
         rewards_grid = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        rewards_grid.grid(row=3, column=0, sticky="nsew")
+        rewards_grid.grid(row=3, column=0, sticky="nsew", pady=(0, 0))  # bỏ padding dưới
         rewards_grid.grid_columnconfigure((0, 1, 2), weight=1)
+        rewards_grid.grid_rowconfigure(0, weight=1)  # cho hàng 0 giãn đều
         reward_items = [
-            ("🥤", "30 Điểm", ""), ("🍿", "75 Điểm", ""),
-            ("🎶", "10 Điểm", ""), ("🧃", "40 Điểm", ""),
-            ("🥫", "20 Điểm", ""), ("🍾", "15 Điểm", "")
+            (r"image\bottle.png", "5 Điểm", ""), 
+            (r"image\bag.png", "10 Điểm", ""), 
+            (r"image\thermos.png", "30 Điểm", "")
         ]
         for i, item in enumerate(reward_items):
-            row, col = i // 3, i % 3
-            self.create_reward_card(rewards_grid, row, col, item[0], item[1], item[2])
-        
+            self.create_reward_card(rewards_grid, 0, i, item[0], item[1], item[2])  # tất cả ở row=0, col=i
+
         reset_button = ctk.CTkButton(
             self.right_frame, text="Đặt lại số liệu", font=ctk.CTkFont(size=20, weight="bold"),
             fg_color="#F9A825", hover_color="#E89B21", text_color="white", corner_radius=10, command=self.prompt_reset_stats
         )
-        reset_button.grid(row=4, column=0, padx=10, pady=(20, 10), sticky="ew")
+        reset_button.grid(row=4, column=0, padx=10, pady=(5, 10), sticky="ew")
+
+    def prompt_export(self):
+        """Mở hộp thoại để người dùng nhập tên và gọi hàm xuất phiếu."""
+        dialog = ctk.CTkInputDialog(text="Vui lòng nhập họ và tên để xuất phiếu:", title="Xuất Phiếu Tích Điểm")
+        user_name = dialog.get_input()
+        if user_name:
+            self.export_receipt(user_name)
+        else:
+            print("Hủy xuất phiếu.")
+
+    # HÀM ĐƯỢC CẬP NHẬT: Giờ đây nó sử dụng class ReceiptPrinter
+    def export_receipt(self, user_name):
+        """
+        Xử lý logic gọi class in và hiển thị hộp thoại kết quả.
+        """
+        success, message = self.printer.print_receipt(
+            user_name=user_name,
+            bottles=self.bottles_counted,
+            cans=self.cans_counted,
+            points=self.total_points
+        )
+        if success:
+            CustomDialog(self, title="Thành Công", message=message)
+        else:
+            CustomDialog(self, title="Lỗi In Ấn", message=message)
 
     def prompt_reset_stats(self):
         """
@@ -276,7 +327,15 @@ class RecyclingApp(ctk.CTk):
         card.bind("<Button-1>", lambda event, p=points_needed: self.prompt_redeem_reward(p))
         img_placeholder = ctk.CTkFrame(card, fg_color=SECONDARY_GREEN, height=80, corner_radius=BORDER_RADIUS)
         img_placeholder.pack(fill="x", padx=10, pady=10)
-        ctk.CTkLabel(img_placeholder, text=image_text, font=ctk.CTkFont(size=50)).pack(expand=True)
+
+        ## KÍCH THƯỚC VẬT PHẨM
+        try:
+            img = Image.open(image_text)
+            ctk_img = ctk.CTkImage(light_image=img, size=(100, 220))
+            ctk.CTkLabel(img_placeholder, image=ctk_img, text="").pack(expand=True)
+        except Exception as e:
+            ctk.CTkLabel(img_placeholder, text="? LỖI ảnh", font=ctk.CTkFont(size=(100, 220))).pack(expand=True)
+            
         points_label = ctk.CTkLabel(card, text=points_text, font=ctk.CTkFont(size=14, weight="bold"), text_color=DARK_GREEN)
         points_label.pack(padx=10, pady=(0, 5))
         if size:
@@ -360,7 +419,7 @@ def create_splash_screen(master):
             frame = frames[frame_index]
             image_label.configure(image=frame)
             next_index = (frame_index + 1) % len(frames)
-            splash.after(25, animate, next_index)
+            splash.after(29, animate, next_index)
 
     if frames:
         animate()

@@ -1,5 +1,6 @@
 from get_library import *
 from backend_count import *
+# from toUart import *
 
 
 # Màu sắc và bo góc chủ đạo
@@ -63,6 +64,15 @@ class RecyclingApp(ctk.CTk):
         self._set_appearance_mode("light")
         self.configure(bg=SECONDARY_GREEN)
 
+        self.gif1_path = r"image\meo2.gif"
+        self.gif2_path = r"image\meo_dh2.gif"  
+        self.gif_frames = []
+        self.gif2_frames = []
+        self.current_gif = 1
+        self.gif_label = None
+        self.gif_animation_id = None
+        self.is_playing_gif2 = False
+
         # --- Data Attributes ---
         self.bottles_counted, self.cans_counted, self.total_points = 0, 0, 0
         self.current_yolo_bottle_count, self.current_yolo_can_count = 0, 0
@@ -70,6 +80,9 @@ class RecyclingApp(ctk.CTk):
 
         # --- THÊM MỚI: Khởi tạo đối tượng in ấn ---
         self.printer = ReceiptPrinter()
+
+        # #--- Khởi tạo truyền gói tin---
+        # self.send_uart = ESP32_UART(port='COM4', baudrate=9600)
 
         # --- Threading and Queue Setup ---
         self.yolo_queue = queue.Queue(maxsize=2)
@@ -127,8 +140,13 @@ class RecyclingApp(ctk.CTk):
         self.title_label.grid(row=0, column=1, padx=1 ,sticky="ew")
         # self.animate_title()
 
-        self.camera_label = ctk.CTkLabel(self.left_frame, text="Đang khởi tạo camera...", font=ctk.CTkFont(size=20))
-        self.camera_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew") 
+        # self.camera_label = ctk.CTkLabel(self.left_frame, text="Đang khởi tạo camera...", font=ctk.CTkFont(size=20))
+        # self.camera_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew") 
+        self.gif_label = ctk.CTkLabel(self.left_frame, text="")
+        self.gif_label.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
+        self.gif_frames = self.load_gif_frames(self.gif1_path)
+        self.gif2_frames = self.load_gif_frames(self.gif2_path)
+        self.play_gif(self.gif_frames, loop=True)
 
         confirm_button = ctk.CTkButton(
             self.left_frame, text="Xác nhận số lượng", font=ctk.CTkFont(size=18, weight="bold"),
@@ -136,6 +154,41 @@ class RecyclingApp(ctk.CTk):
             corner_radius=10, command=self.confirm_and_update_stats
         )
         confirm_button.grid(row=2, column=0, padx=120, pady=(5, 20), sticky="ew")
+
+    def load_gif_frames(self, gif_path):
+        frames = []
+        if os.path.exists(gif_path):
+            gif = Image.open(gif_path)
+            try:
+                while True:
+                    frame = gif.copy().convert("RGBA")
+                    ctk_image = ctk.CTkImage(light_image=frame, size=(480, 480))
+                    frames.append(ctk_image)
+                    gif.seek(len(frames))
+            except EOFError:
+                pass
+        return frames
+
+    def play_gif(self, frames, loop=True, on_complete=None):
+        if not frames:
+            return
+        if self.gif_animation_id:
+            self.after_cancel(self.gif_animation_id)
+        self._play_gif_frame(frames, 0, loop, on_complete)
+
+    def _play_gif_frame(self, frames, idx, loop, on_complete):
+        if not self.gif_label:
+            return
+        self.gif_label.configure(image=frames[idx])
+        self.gif_label.image = frames[idx]
+        next_idx = idx + 1
+        if next_idx < len(frames):
+            self.gif_animation_id = self.after(20, self._play_gif_frame, frames, next_idx, loop, on_complete)
+        else:
+            if loop:
+                self.gif_animation_id = self.after(20, self._play_gif_frame, frames, 0, loop, on_complete)
+            elif on_complete:
+                on_complete()
 
     def animate_title(self, colors=None, idx=0):
         """
@@ -168,16 +221,17 @@ class RecyclingApp(ctk.CTk):
         """
         try:
             frame, bottle_count, can_count = self.yolo_queue.get_nowait()
+            # Phát hiện có vật mới đi qua line
+            if (bottle_count > self.current_yolo_bottle_count or can_count > self.current_yolo_can_count) and not self.is_playing_gif2:
+                self.is_playing_gif2 = True
+                def on_gif2_done():
+                    self.is_playing_gif2 = False
+                    self.play_gif(self.gif_frames, loop=True)
+                self.play_gif(self.gif2_frames, loop=False, on_complete=on_gif2_done)
             self.current_yolo_bottle_count = bottle_count
             self.current_yolo_can_count = can_count
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            pil_image = Image.fromarray(frame_rgb)
-            ctk_image = ctk.CTkImage(light_image=pil_image, size=(640, 480))
-            self.camera_label.configure(image=ctk_image, text="")
-            self.camera_label.image = ctk_image
         except queue.Empty:
-            pass # No new frame available yet
+            pass
         finally:
             self.after(20, self.update_camera_feed)
 
@@ -465,6 +519,7 @@ def create_splash_screen(master):
     update_progress()
 
     return splash
+
 
 if __name__ == "__main__":
     app = RecyclingApp()
