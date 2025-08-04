@@ -13,7 +13,7 @@ class YOLOProcessor(threading.Thread):
         self.running = True
 
         #--- Khởi tạo truyền gói tin---
-        self.send_uart = ESP32_UART(port='COM4', baudrate=9600)
+        self.send_uart = ESP32_UART(port='COM5', baudrate=9600)
 
     def run(self):
         """Main loop for video processing."""
@@ -46,7 +46,7 @@ class YOLOProcessor(threading.Thread):
                 continue
 
             frame = cv2.resize(frame, (640, 480))
-            results = model.track(source=frame, imgsz=640, conf=0.45, verbose=False, device="0", persist=True, tracker=r'tracking/bytetrack.yaml')[0]
+            results = model.track(source=frame, imgsz=640, conf=0.25, verbose=False, device="0", persist=True, tracker=r'tracking/bytetrack.yaml')[0]
             
             cv2.line(frame, (line[0], line[1]), (line[2], line[3]), (0, 255, 255), 3)
             
